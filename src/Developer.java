@@ -1,30 +1,62 @@
-public class Developer extends Thread {
+import static java.lang.Thread.sleep;
 
-    private static Office company = new Office();
+public class Developer extends People {
 
+    public Developer(int id, Office office) {
+        super(id, office);
+        Thread developer = new Thread(this);
+        developer.start();
+    }
+
+    @Override
     public void run() {
-
-        // occasionaly reports for meeting
-
-        // waits patiently for a meeting
-
-        // if projectleader = already busy, get back to work
-
-        // if waiting && meeting starts without me, get back to work
-
-
         while (true) {
+            try {
+                doWork();
+                if (!Office.inMeeting) {
 
-            //randomly
-            //company.reportformeeting
-            
+                    Office.developerReport();
 
+                    if (Office.isUser) {
 
-            //
+                        if(Office.devsmutex.tryAcquire()) {
 
+                            Office.onsetUsersLock.await();
+                            Office.onsetUsers.countDown();
 
+                            //user meeting
+                            Meeting.meeting();
+
+                            Office.onendUsers.countDown();
+                            Office.onendUsersLock.countDown();
+
+                            Office.devsmutex.release();
+                        }
+
+                    } else if (!Office.isUser) {
+                        Office.onsetDevsLock.await();
+                        Office.onsetDevs.countDown();
+
+                        //developer meeting
+                        Meeting.meeting();
+
+                        Office.onendDevs.countDown();
+                        Office.onendDevsLock.await();
+                    }
+                } else {
+                    doWork();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+    }
 
-
+    private void doWork() {
+        try {
+            sleep((long) (Math.random() * 10000));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
